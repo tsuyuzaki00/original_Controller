@@ -1,45 +1,88 @@
-int inPin1 = 1;
-int inPin2 = 2;
-int inPin3 = 3;
-int inPin4 = 4;
-int inPin5 = 5;
-int inPin6 = 6;
+#include <SPI.h> 
 
-int UpButton;
-int DownButton;
-int RightButton;
-int LeftButton;
-int analogPin1;
-int analogPin2;
+const int L3GD20_CS = SS;
 
-void setup()
-{
+const byte L3GD20_ADDR = 0x6a;
+const byte L3GD20_WHOAMI = 0x0f;
+const byte L3GD20_CTRL_REG1 = 0x20;
+const byte L3GD20_OUT_X_L = 0x28;
+const byte L3GD20_OUT_X_H = 0x29;
+const byte L3GD20_OUT_Y_L = 0x2A;
+const byte L3GD20_OUT_Y_H = 0x2B;
+const byte L3GD20_OUT_Z_L = 0x2C;
+const byte L3GD20_OUT_Z_H = 0x2D;
+
+const byte L3GD20_RW = 0x80;
+const byte L3GD20_MS = 0x40;
+
+byte L3GD20_read(byte reg) {
+  byte ret = 0;
+
+  digitalWrite(L3GD20_CS, LOW);
+  SPI.transfer(reg | L3GD20_RW);
+  ret = SPI.transfer(0);
+  digitalWrite(L3GD20_CS, HIGH);
+
+  return ret;
+}
+
+void setup() {
+  
   Serial.begin(9600);
-  pinMode(inPin3, INPUT);
-  pinMode(inPin4, INPUT);
-  pinMode(inPin5, INPUT);
-  pinMode(inPin6, INPUT);
+  digitalWrite(SS, HIGH);
+  pinMode(SS, OUTPUT);
+
+  SPI.begin();
+  SPI.setBitOrder(MSBFIRST);
+  SPI.setClockDivider(SPI_CLOCK_DIV8);
+  
+  while (!Serial) {}
+
+  Serial.println(L3GD20_read(L3GD20_WHOAMI), HEX);
+  digitalWrite(L3GD20_CS, LOW);
+  SPI.transfer(L3GD20_CTRL_REG1);
+  SPI.transfer(B00001111);
+  digitalWrite(L3GD20_CS, HIGH);
 }
 
 void loop()
 {
-  float XAxis = analogRead(0);
-  float YAxis = analogRead(1);
-  float Xsenser = analogRead(2);
-  float Ysenser = analogRead(3);
-  float Zsenser = analogRead(4);
-  UpButton = digitalRead(inPin3);
-  DownButton = digitalRead(inPin4);
-  RightButton = digitalRead(inPin5);
-  LeftButton = digitalRead(inPin6);
+  short jh, jl;
+  float jx, jy, jz;
+  long kx , ky , kz ;
+  float sx, sy, ss;
+  kx = ky = kz = 0 ;
+
+  sx = analogRead(0) ; // 左右スティック
+  sy = analogRead(1) ; // 上下スティック
+  kx = analogRead(3) ; // Ｘ軸
+  ky = analogRead(4) ; // Ｙ軸
+  kz = analogRead(5) ; // Ｚ軸
+  as = analogRead(6) ; // アナログセンサー
+
+  jl = L3GD20_read(L3GD20_OUT_X_L);
+  jh = L3GD20_read(L3GD20_OUT_X_H);
+  jx = (jh << 8) | jl;
+  jl = L3GD20_read(L3GD20_OUT_Y_L);
+  jh = L3GD20_read(L3GD20_OUT_Y_H);
+  jy = (jh << 8) | jl;
+  jl = L3GD20_read(L3GD20_OUT_Z_L);
+  jh = L3GD20_read(L3GD20_OUT_Z_H);
+  jz = (jh << 8) | jl;
   
-  Serial.println(XAxis);
-  Serial.println(YAxis);
-  Serial.println(Xsenser);
-  Serial.println(Ysenser);
-  Serial.println(Zsenser);
-  Serial.println(UpButton);
-  Serial.println(DownButton);
-  Serial.println(RightButton);
-  Serial.println(LeftButton);
+  Serial.print("kx:") ;
+  Serial.print(kx) ;
+  Serial.print("ky:") ;
+  Serial.print(ky) ;
+  Serial.print("kz:") ;
+  Serial.println(kz) ;
+
+  Serial.print("jx:");
+  Serial.print(jx);
+  Serial.print("jy:");
+  Serial.print(jy);
+  Serial.print("jz:");
+  Serial.println(jz);
+
+  delay(5);
 }
